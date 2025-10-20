@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Entre palabras y sabores — Recetario personal</title>
+
+  <!-- Tailwind CSS desde CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Configuración rápida de Tailwind para alto contraste y tipografía grande
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#0a0a0a",
+            cream: "#FAFAF9",
+            brand: { 50:"#eef2ff", 100:"#e0e7ff", 600:"#4f46e5", 700:"#4338ca", 800:"#3730a3" }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { color-scheme: light dark; }
+    .focus-ring:focus { outline: 3px solid #4f46e5; outline-offset: 3px; }
+    .visually-hidden {
+      position: absolute !important; height: 1px; width: 1px; overflow: hidden;
+      clip: rect(1px, 1px, 1px, 1px); white-space: nowrap;
+    }
+  </style>
+</head>
+<body class="bg-cream text-ink selection:bg-brand-600 selection:text-white">
+  <div class="min-h-screen flex flex-col">
+
+    <!-- Encabezado -->
+    <header class="bg-[#0c1a3a] text-white"> <!-- azul profundo que combina con el logo -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <!-- 🔽🔽🔽 LOGO CARGADO 🔽🔽🔽
+               Opción 1 (recomendada): guarda tu imagen al lado de este HTML con nombre "logo.png".
+               Este <img> ya apunta a "logo.png".
+               Opción 2: usa el botón “Cambiar logo” para subir un PNG y guardarlo en tu navegador (LocalStorage).
+          -->
+          <img id="appLogo" src="logo.png"
+               alt="Logo de Entre palabras y sabores"
+               class="w-20 h-20 object-contain rounded-xl ring-2 ring-white/40 bg-transparent">
+
+          <!-- 🔼🔼🔼 FIN LOGO 🔼🔼🔼 -->
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold leading-tight">Entre palabras y sabores</h1>
+            <p class="text-sm md:text-base text-white/80">Tu recetario familiar, elegante y sencillo, para dejar un legado digital.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btnChangeLogo"
+                  class="focus-ring rounded-2xl px-4 py-3 text-lg font-semibold bg-white text-[#0c1a3a] hover:bg-white/90 transition"
+                  aria-label="Cambiar logo (subir PNG)">🖼️ Cambiar logo</button>
+          <input id="logoFile" type="file" accept="image/png,image/jpeg" class="visually-hidden" />
+          <button id="btnNewRecipe"
+                  class="focus-ring rounded-2xl px-4 py-3 text-lg font-semibold bg-brand-600 hover:bg-brand-700 active:bg-brand-800 transition"
+                  aria-label="Añadir nueva receta (Alt+N)">
+            ➕ Nueva receta
+          </button>
+          <button id="btnHelp"
+                  class="focus-ring rounded-2xl px-4 py-3 text-lg font-semibold bg-white text-ink hover:bg-white/90 transition"
+                  aria-expanded="false" aria-controls="helpPanel">
+            ❓ Ayuda
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Zona de contenido con barra lateral -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr] max-w-7xl w-full mx-auto gap-0 lg:gap-6 px-2 sm:px-4 lg:px-6 py-4">
+      <!-- Barra lateral -->
+      <aside class="bg-white border border-black/10 rounded-2xl p-3 lg:p-4 h-max lg:sticky lg:top-4" aria-label="Listado de recetas guardadas">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xl md:text-2xl font-bold">Recetas guardadas</h2>
+          <button id="btnToggleSidebar" class="lg:hidden focus-ring px-3 py-2 rounded-xl bg-[#0c1a3a] text-white text-lg">Menú</button>
+        </div>
+
+        <div id="sidebarList" class="space-y-1 max-h-[50vh] overflow-auto pr-1" role="navigation" aria-label="Recetas"></div>
+
+        <div class="mt-4 border-t pt-4">
+          <h3 class="text-lg font-semibold">Acciones</h3>
+          <div class="mt-2 grid gap-2">
+            <button id="btnExport"
+              class="focus-ring w-full rounded-xl px-4 py-3 text-lg font-semibold bg-brand-600 text-white hover:bg-brand-700">Exportar recetario</button>
+            <label class="focus-ring w-full rounded-xl px-4 py-3 text-lg font-semibold bg-white border text-center cursor-pointer hover:bg-black/5" for="importFile">Importar recetario</label>
+            <input id="importFile" type="file" accept=".json" class="visually-hidden" />
+          </div>
+        </div>
+      </aside>
+
+      <!-- Panel principal -->
+      <main class="space-y-6">
+        <!-- Ayuda -->
+        <section id="helpPanel" class="bg-white border border-black/10 rounded-2xl p-4 lg:p-6" hidden>
+          <h2 class="text-2xl font-bold mb-2">Cómo usar esta aplicación</h2>
+          <ol class="list-decimal ms-6 text-lg leading-relaxed space-y-2">
+            <li><strong>Abrir:</strong> Guarda este archivo con extensión <code>.html</code> (por ejemplo <em>entre-palabras-y-sabores.html</em>) y ábrelo con doble clic.</li>
+            <li><strong>Logo:</strong> Coloca tu archivo <code>logo.png</code> junto a este HTML <em>o</em> usa “Cambiar logo” para subirlo y guardarlo localmente.</li>
+            <li><strong>Crear receta:</strong> Presiona <em>“Nueva receta”</em> (o Alt+N). Completa Título, Descripción, Ingredientes y Pasos. Puedes añadir una o varias fotos.</li>
+            <li><strong>Ver/Editar/Eliminar:</strong> Al guardar, la receta aparece en el listado y en la barra lateral. Puedes abrirla para verla, editarla o eliminarla.</li>
+            <li><strong>Likes y comentarios:</strong> En cada receta puedes dar “Me gusta” y agregar comentarios. Todo queda guardado en tu navegador.</li>
+            <li><strong>Respaldo:</strong> Usa “Exportar recetario” para descargar un .json con todas tus recetas, o “Importar recetario” para cargarlas nuevamente.</li>
+            <li><strong>Privacidad:</strong> Todo se guarda en <em>LocalStorage</em> de tu navegador, sin servidor.</li>
+          </ol>
+        </section>
+
+        <!-- Placeholder -->
+        <section id="emptyState" class="bg-white border border-black/10 rounded-2xl p-10 text-center">
+          <div class="mx-auto w-24 h-24 mb-4" aria-hidden="true">
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+              <rect x="20" y="30" width="160" height="120" rx="16" fill="#4f46e5" />
+              <circle cx="70" cy="85" r="22" fill="white"/>
+              <rect x="110" y="70" width="60" height="12" rx="6" fill="white"/>
+              <rect x="110" y="90" width="60" height="12" rx="6" fill="white"/>
+            </svg>
+          </div>
+          <h2 class="text-2xl md:text-3xl font-extrabold mb-2">¡Tu recetario te espera!</h2>
+          <p class="text-lg md:text-xl text-black/70 max-w-2xl mx-auto mb-6">Comienza creando tu primera receta. Sube una foto, escribe los ingredientes y los pasos. <br/>Este será tu legado de sabores y recuerdos.</p>
+          <button class="focus-ring rounded-2xl px-6 py-4 text-lg font-semibold bg-brand-600 text-white hover:bg-brand-700" id="ctaNewRecipe">Crear mi primera receta</button>
+        </section>
+
+        <!-- Grid de tarjetas -->
+        <section id="cardsSection" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="Listado de recetas" hidden></section>
+
+        <!-- Detalle / Editor -->
+        <section id="detailSection" class="bg-white border border-black/10 rounded-2xl p-4 lg:p-6" hidden></section>
+      </main>
+    </div>
+
+    <footer class="mt-auto bg-[#0c1a3a] text-white text-center text-base py-4">
+      Hecho con cariño para familias que quieren conservar sus recuerdos. 💛
+    </footer>
+  </div>
+
+  <!-- Plantillas -->
+  <template id="recipeCardTpl">
+    <article class="border border-black/10 rounded-2xl overflow-hidden bg-white flex flex-col">
+      <figure class="aspect-[4/3] bg-black/5">
+        <img class="w-full h-full object-cover" alt="">
+      </figure>
+      <div class="p-4 flex-1 flex flex-col">
+        <h3 class="text-xl font-bold mb-2 line-clamp-2"></h3>
+        <p class="text-base text-black/70 line-clamp-3 mb-4"></p>
+        <div class="mt-auto flex items-center justify-between gap-2">
+          <button class="focus-ring viewBtn rounded-xl px-4 py-3 text-lg font-semibold bg-brand-600 text-white hover:bg-brand-700">Ver</button>
+          <div class="flex items-center gap-3">
+            <button class="focus-ring likeBtn rounded-xl px-3 py-2 text-lg bg-white border hover:bg-black/5" aria-label="Me gusta">👍 <span class="likesCount">0</span></button>
+            <button class="focus-ring commentBtn rounded-xl px-3 py-2 text-lg bg-white border hover:bg-black/5" aria-label="Comentar">💬</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <template id="sidebarItemTpl">
+    <button class="focus-ring w-full text-left px-3 py-3 rounded-xl hover:bg-black/5 text-lg truncate border border-transparent">
+      <span class="inline-block me-2 align-middle">📖</span>
+      <span class="align-middle title"></span>
+    </button>
+  </template>
+
+  <!-- App -->
+  <script>
+    /*********** Almacenamiento ***********/
+    const LS_KEY = "eps_recipes_v1";
+    const LOGO_KEY = "eps_logo_v1";
+    const byId = (id) => document.getElementById(id);
+    const $ = (sel, root=document) => root.querySelector(sel);
+
+    function loadRecipes(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } }
+    function saveRecipes(recipes){ localStorage.setItem(LS_KEY, JSON.stringify(recipes)); }
+    function uid(){ return "r_" + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+    function nowISO(){ return new Date().toISOString(); }
+
+    let state = { recipes: loadRecipes(), currentId: null, sidebarOpen: true };
+
+    /*********** Render ***********/
+    function renderAll(){
+      const has = state.recipes.length > 0;
+      byId("emptyState").hidden = has;
+      byId("cardsSection").hidden = !has;
+      renderSidebar();
+      if(has) renderCards(); else byId("detailSection").hidden = true;
+    }
+
+    function renderSidebar(){
+      const wrap = byId("sidebarList");
+      wrap.innerHTML = "";
+      if(state.recipes.length === 0){
+        const p = document.createElement("p");
+        p.className = "text-black/60 text-lg";
+        p.textContent = "Aún no hay recetas. Crea la primera con “Nueva receta”.";
+        wrap.appendChild(p);
+        return;
+      }
+      const tpl = byId("sidebarItemTpl");
+      state.recipes
+        .slice()
+        .sort((a,b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+        .forEach(r => {
+          const node = tpl.content.firstElementChild.cloneNode(true);
+          $(".title", node).textContent = r.title || "Sin título";
+          node.title = r.title || "Sin título";
+          node.addEventListener("click", () => openDetail(r.id));
+          wrap.appendChild(node);
+        });
+    }
+
+    function renderCards(){
+      const grid = byId("cardsSection");
+      grid.innerHTML = "";
+      const tpl = byId("recipeCardTpl");
+      state.recipes
+        .slice()
+        .sort((a,b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+        .forEach(r => {
+          const card = tpl.content.firstElementChild.cloneNode(true);
+          const img = card.querySelector("img");
+          img.src = (r.images && r.images[0]) || "";
+          img.alt = `Foto de ${r.title || "receta"}`;
+          card.querySelector("h3").textContent = r.title || "Sin título";
+          card.querySelector("p").textContent = (r.description || "").trim();
+          card.querySelector(".likesCount").textContent = r.likes || 0;
+          card.querySelector(".viewBtn").addEventListener("click", () => openDetail(r.id));
+          card.querySelector(".likeBtn").addEventListener("click", () => { addLike(r.id); card.querySelector(".likesCount").textContent = getRecipe(r.id).likes || 0; });
+          card.querySelector(".commentBtn").addEventListener("click", () => openDetail(r.id, {focusComment:true}));
+          grid.appendChild(card);
+        });
+    }
+
+    /*********** CRUD ***********/
+    function getRecipe(id){ return state.recipes.find(r => r.id === id); }
+    function createRecipe(data){
+      const rec = { id: uid(), title: data.title?.trim() || "Sin título", description: data.description?.trim() || "",
+        ingredients: data.ingredients || [], steps: data.steps || [], images: data.images || [],
+        likes: 0, comments: [], createdAt: nowISO(), updatedAt: nowISO() };
+      state.recipes.push(rec); saveRecipes(state.recipes); return rec.id;
+    }
+    function updateRecipe(id, patch){ const r = getRecipe(id); if(!r) return; Object.assign(r, patch); r.updatedAt = nowISO(); saveRecipes(state.recipes); }
+    function deleteRecipe(id){ state.recipes = state.recipes.filter(r => r.id !== id); saveRecipes(state.recipes); }
+    function addLike(id){ const r = getRecipe(id); if(!r) return; r.likes = (r.likes || 0) + 1; r.updatedAt = nowISO(); saveRecipes(state.recipes); const likesEl = byId("detailLikesCount"); if(likesEl) likesEl.textContent = r.likes; }
+    function addComment(id, name, text){
+      const r = getRecipe(id); if(!r) return;
+      const c = { id: uid(), name: (name || "Anónimo").trim(), text: (text || "").trim(), date: nowISO() };
+      if(!c.text) return; r.comments.push(c); r.updatedAt = nowISO(); saveRecipes(state.recipes); return c;
+    }
+    function removeComment(recipeId, commentId){
+      const r = getRecipe(recipeId); if(!r) return;
+      r.comments = r.comments.filter(c => c.id !== commentId); r.updatedAt = nowISO(); saveRecipes(state.recipes);
+    }
+
+    /*********** Detalle / Editor ***********/
+    async function filesToDataUrls(fileList){
+      const files = [...fileList || []];
+      const reads = files.map(f => new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(f); }));
+      return Promise.all(reads);
+    }
+
+    function openDetail(id, opts={}){
+      state.currentId = id;
+      const r = getRecipe(id); if(!r) return;
+      const section = byId("detailSection"); section.hidden = false; section.innerHTML = "";
+
+      const head = document.createElement("div");
+      head.className = "flex flex-col md:flex-row md:items-center md:justify-between gap-4";
+      head.innerHTML = `
+        <div>
+          <h2 class="text-2xl md:text-3xl font-extrabold">${escapeHTML(r.title || "Sin título")}</h2>
+          <p class="text-base md:text-lg text-black/70">Actualizada: ${formatDate(r.updatedAt || r.createdAt)}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnEdit" class="focus-ring rounded-2xl px-4 py-3 text-lg font-semibold bg-white border hover:bg-black/5">✏️ Editar</button>
+          <button id="btnDelete" class="focus-ring rounded-2xl px-4 py-3 text-lg font-semibold bg-white border hover:bg-black/5">🗑️ Eliminar</button>
+          <button id="btnBack" class="focus-ring rounded-2xl px-4 py-3 text-lg font-semibold bg-brand-600 text-white hover:bg-brand-700">⬅️ Volver</button>
+        </div>`;
+      section.appendChild(head);
+
+      if(r.images?.length){
+        const gallery = document.createElement("div");
+        gallery.className = "mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3";
+        r.images.forEach(src => {
+          const fig = document.createElement("figure");
+          fig.className = "rounded-xl overflow-hidden border border-black/10 bg-black/5";
+          fig.innerHTML = `<img src="${src}" alt="Foto del plato" class="w-full h-56 object-cover">`;
+          gallery.appendChild(fig);
+        });
+        section.appendChild(gallery);
+      }
+
+      const body = document.createElement("div");
+      body.className = "mt-6 grid md:grid-cols-2 gap-6";
+      body.innerHTML = `
+        <div class="space-y-3">
+          <h3 class="text-xl font-bold">Descripción</h3>
+          <p class="text-lg leading-relaxed">${escapeHTML(r.description || "—")}</p>
+          <h3 class="text-xl font-bold mt-6">Ingredientes</h3>
+          <ul class="list-disc ms-6 text-lg leading-relaxed">${ (r.ingredients || []).map(li => `<li>${escapeHTML(li)}</li>`).join("") || "<li>—</li>" }</ul>
+        </div>
+        <div class="space-y-3">
+          <h3 class="text-xl font-bold">Pasos</h3>
+          <ol class="list-decimal ms-6 text-lg leading-relaxed">${ (r.steps || []).map(step => `<li class="mb-2">${escapeHTML(step)}</li>`).join("") || "<li>—</li>" }</ol>
+          <div class="mt-6 flex items-center gap-3">
+            <button id="btnLike" class="focus-ring rounded-xl px-4 py-3 text-lg bg-white border hover:bg-black/5">👍 Me gusta</button>
+            <span class="text-lg">Likes: <strong id="detailLikesCount">${r.likes || 0}</strong></span>
+          </div>
+        </div>`;
+      section.appendChild(body);
+
+      const commentsWrap = document.createElement("div");
+      commentsWrap.className = "mt-8";
+      commentsWrap.innerHTML = `
+        <h3 class="text-xl font-bold mb-3">Comentarios</h3>
+        <form id="commentForm" class="bg-black/5 border border-black/10 rounded-xl p-4 grid md:grid-cols-[1fr_2fr_auto] gap-3 items-start">
+          <label class="sr-only" for="cName">Nombre</label>
+          <input id="cName" type="text" placeholder="Tu nombre (opcional)"
+                 class="focus-ring rounded-xl px-4 py-3 text-lg border w-full bg-white" />
+          <label class="sr-only" for="cText">Comentario</label>
+          <textarea id="cText" placeholder="Escribe tu comentario..."
+                 class="focus-ring rounded-xl px-4 py-3 text-lg border w-full bg-white min-h-[56px]"></textarea>
+          <button class="focus-ring rounded-xl px-4 py-3 text-lg font-semibold bg-brand-600 text-white hover:bg-brand-700">Publicar</button>
+        </form>
+        <div id="commentsList" class="mt-4 space-y-3"></div>`;
+      section.appendChild(commentsWrap);
+
+      renderComments(r);
+
+      $("#btnBack", head).addEventListener("click", () => { section.hidden = true; });
+      $("#btnEdit", head).addEventListener("click", () => openEditor(r));
+      $("#btnDelete", head).addEventListener("click", () => {
+        if(confirm("¿Eliminar esta receta? Esta acción no se puede deshacer.")){
+          deleteRecipe(r.id); renderAll(); section.hidden = true;
+        }
+      });
+      $("#btnLike", body).addEventListener("click", () => addLike(r.id));
+      $("#commentForm", commentsWrap).addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = $("#cName", commentsWrap).value;
+        const text = $("#cText", commentsWrap).value;
+        if(!text.trim()) return;
+        addComment(r.id, name, text);
+        $("#cText", commentsWrap).value = "";
+        openDetail(r.id);
+      });
+
+      if(opts.focusComment){ $("#cText", commentsWrap)?.focus(); }
+    }
+
+    function renderComments(recipe){
+      const box = byId("commentsList"); box.innerHTML = "";
+      if(!recipe.comments?.length){
+        const p = document.createElement("p");
+        p.className = "text-lg text-black/60";
+        p.textContent = "Sé la primera persona en comentar esta receta.";
+        box.appendChild(p); return;
+      }
+      recipe.comments.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(c=>{
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-black/10 bg-white p-4";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="text-lg font-semibold">${escapeHTML(c.name || "Anónimo")}</div>
+            <div class="text-black/60 text-base">${formatDate(c.date)}</div>
+          </div>
+          <p class="text-lg mt-2 whitespace-pre-wrap">${escapeHTML(c.text)}</p>
+          <div class="mt-3">
+            <button class="focus-ring removeComment rounded-xl px-3 py-2 text-lg bg-white border hover:bg-black/5">Eliminar</button>
+          </div>`;
+        card.querySelector(".removeComment").addEventListener("click", ()=>{
+          if(confirm("¿Eliminar este comentario?")){ removeComment(recipe.id, c.id); openDetail(recipe.id); }
+        });
+        box.appendChild(card);
+      });
+    }
+
+    function openEditor(rec=null){
+      const isEdit = !!rec;
+      const section = byId("detailSection"); section.hidden = false;
+      section.innerHTML = `
+        <h2 class="text-2xl md:text-3xl font-extrabold mb-4">${isEdit ? "Editar receta" : "Nueva receta"}</h2>
+        <form id="recipeForm" class="grid gap-4 bg-white border border-black/10 rounded-2xl p-4">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-lg font-semibold mb-1" for="title">Título</label>
+              <input id="title" type="text" required class="focus-ring rounded-xl px-4 py-3 text-lg border w-full bg-white"
+                placeholder="Ej: Pastel de yuca de la abuela" value="${escapeAttr(rec?.title || "")}">
+            </div>
+            <div>
+              <label class="block text-lg font-semibold mb-1" for="images">Fotos del plato</label>
+              <label class="focus-ring rounded-xl px-4 py-3 text-lg border w-full bg-white cursor-pointer flex items-center justify-between">
+                <span>Seleccionar imágenes…</span>
+                <span class="text-black/60">(puedes elegir varias)</span>
+                <input id="images" class="visually-hidden" type="file" accept="image/*" multiple>
+              </label>
+              <div id="imagePreview" class="mt-2 grid grid-cols-3 gap-2"></div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-lg font-semibold mb-1" for="description">Descripción</label>
+            <textarea id="description" rows="3" class="focus-ring rounded-xl px-4 py-3 text-lg border w-full bg-white"
+              placeholder="Cuenta una breve historia o nota sobre esta receta…">${escapeHTML(rec?.description || "")}</textarea>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-lg font-semibold mb-1" for="ingredients">Ingredientes (uno por línea)</label>
+              <textarea id="ingredients" rows="6" class="focus-ring rounded-xl px-4 py-3 text-lg border w-full bg-white"
+                placeholder="- 2 tazas de harina&#10;- 1 huevo&#10;- 1 taza de leche">${escapeHTML((rec?.ingredients || []).join("\n"))}</textarea>
+            </div>
+            <div>
+              <label class="block text-lg font-semibold mb-1" for="steps">Pasos (uno por línea)</label>
+              <textarea id="steps" rows="6" class="focus-ring rounded-xl px-4 py-3 text-lg border w-full bg-white"
+                placeholder="1. Mezclar los ingredientes secos&#10;2. Agregar los húmedos y batir&#10;3. Hornear 30 minutos">${escapeHTML((rec?.steps || []).join("\n"))}</textarea>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 pt-2">
+            <button class="focus-ring rounded-2xl px-5 py-3 text-lg font-semibold bg-brand-600 text-white hover:bg-brand-700" id="saveBtn">${isEdit ? "Guardar cambios" : "Publicar receta"}</button>
+            <button type="button" class="focus-ring rounded-2xl px-5 py-3 text-lg font-semibold bg-white border hover:bg-black/5" id="cancelBtn">Cancelar</button>
+          </div>
+        </form>`;
+
+      if(rec?.images?.length){
+        const prev = byId("imagePreview");
+        rec.images.forEach(src => {
+          const img = document.createElement("img");
+          img.src = src; img.alt = "Vista previa";
+          img.className = "w-full h-24 object-cover rounded-lg border";
+          prev.appendChild(img);
+        });
+      }
+
+      const form = byId("recipeForm");
+      const imgInput = byId("images");
+      imgInput.addEventListener("change", async () => {
+        const urls = await filesToDataUrls(imgInput.files);
+        const prev = byId("imagePreview"); prev.innerHTML = "";
+        urls.forEach(src => {
+          const img = document.createElement("img");
+          img.src = src; img.alt = "Vista previa";
+          img.className = "w-full h-24 object-cover rounded-lg border";
+          prev.appendChild(img);
+        });
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const title = byId("title").value;
+        const description = byId("description").value;
+        const ingredients = byId("ingredients").value.split("\n").map(s => s.trim()).filter(Boolean);
+        const steps = byId("steps").value.split("\n").map(s => s.trim()).filter(Boolean);
+
+        let newImages = [];
+        if(imgInput.files?.length){ newImages = await filesToDataUrls(imgInput.files); }
+        else if(isEdit) { newImages = rec.images || []; }
+
+        if(isEdit){ updateRecipe(rec.id, { title, description, ingredients, steps, images: newImages }); openDetail(rec.id); }
+        else { const newId = createRecipe({ title, description, ingredients, steps, images: newImages }); renderAll(); openDetail(newId); }
+        renderAll();
+      });
+
+      byId("cancelBtn").addEventListener("click", () => { if(isEdit) openDetail(rec.id); else { section.hidden = true; } });
+    }
+
+    /*********** Exportar / Importar ***********/
+    function download(filename, text) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([text], {type:"application/json"}));
+      a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+    }
+    function exportAll(){ download(`recetario_${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(state.recipes, null, 2)); }
+    function importAll(file){
+      const fr = new FileReader();
+      fr.onload = () => {
+        try{
+          const arr = JSON.parse(fr.result);
+          if(Array.isArray(arr)){ state.recipes = arr; saveRecipes(state.recipes); renderAll(); alert("Recetario importado con éxito."); }
+          else alert("El archivo no parece válido.");
+        } catch { alert("No se pudo leer el archivo. Verifique el formato JSON."); }
+      };
+      fr.readAsText(file);
+    }
+
+    /*********** Helpers ***********/
+    function formatDate(iso){
+      try { const d = new Date(iso);
+        return d.toLocaleString(undefined,{year:"numeric",month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+      } catch { return "—"; }
+    }
+    function escapeHTML(str=""){
+      return str.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+    function escapeAttr(str=""){ return escapeHTML(str).replaceAll("\n","&#10;"); }
+
+    /*********** Eventos globales + Logo ***********/
+    function bindGlobalEvents(){
+      byId("btnNewRecipe").addEventListener("click", () => openEditor());
+      byId("ctaNewRecipe").addEventListener("click", () => openEditor());
+      byId("btnHelp").addEventListener("click", (e) => {
+        const panel = byId("helpPanel"); const hidden = panel.hidden;
+        panel.hidden = !hidden; e.currentTarget.setAttribute("aria-expanded", String(!hidden));
+        if(!hidden) panel.scrollIntoView({behavior:"smooth", block:"start"});
+      });
+      byId("btnExport").addEventListener("click", exportAll);
+      byId("importFile").addEventListener("change", (e) => { const f = e.target.files?.[0]; if(f) importAll(f); });
+
+      // Atajo Alt+N
+      document.addEventListener("keydown", (e) => { if(e.altKey && (e.key.toLowerCase() === "n")){ e.preventDefault(); openEditor(); } });
+
+      // Sidebar responsive
+      byId("btnToggleSidebar").addEventListener("click", () => {
+        state.sidebarOpen = !state.sidebarOpen;
+        const aside = byId("sidebarList").parentElement;
+        aside.classList.toggle("hidden", !state.sidebarOpen);
+      });
+
+      // Cambiar logo y guardar en LocalStorage
+      byId("btnChangeLogo").addEventListener("click", ()=> byId("logoFile").click());
+      byId("logoFile").addEventListener("change", async (e)=>{
+        const f = e.target.files?.[0]; if(!f) return;
+        const fr = new FileReader();
+        fr.onload = ()=> {
+          try { localStorage.setItem(LOGO_KEY, fr.result); } catch {}
+          byId("appLogo").src = fr.result;
+        };
+        fr.readAsDataURL(f);
+      });
+
+      // Cargar logo desde LocalStorage si existe
+      const savedLogo = localStorage.getItem(LOGO_KEY);
+      if(savedLogo){ byId("appLogo").src = savedLogo; }
+    }
+
+    (function init(){ bindGlobalEvents(); renderAll(); })();
+  </script>
+</body>
+</html>
